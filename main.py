@@ -5,13 +5,14 @@ import pandas as pd
 
 ### INPUTS
 pklfile = 'WC2022.pkl'
+firstPlayoffRow = 67 # first playoff row in excel file
 
 ## load data
 scoreData = pd.read_pickle(pklfile)
 
 ##############################################################################
 ## GET RANKINGS
-def getPoints(master,player):
+def getPoints(master,player,playoff=firstPlayoffRow-2):
     # identify NA entries
     flag = ~master['Team1score'].isna()
     # get scores
@@ -28,7 +29,31 @@ def getPoints(master,player):
     outcomes = sum(np.logical_or(np.logical_or(lt,gt),eq))
     # compute points
     points = outcomes + 2*picks
-    return points, picks
+    
+    ### DEAL WITH PLAYOFF PENALTIES
+    # get PK scores
+    PK1master = master['PK1'][flag]
+    PK2master = master['PK2'][flag]
+    PK1player = player['PK1'][flag]
+    PK2player = player['PK2'][flag]
+    # only counts if 1) in playoffs (row>=playoff); 2) game ended in tie; 3) player predicted tie
+    masterTie = master1==master2 # get entries with real ties
+    playerTie = player1==player2 # get entries with player predicted ties
+    PKflag = np.logical_and(masterTie,playerTie)
+    PKflag = np.logical_and(PKflag, PKflag.keys()>=playoff) # now PKflag contains the rows where PK need to be assessed
+    idx = PKflag.keys()[np.where(PKflag)[0]]
+    # now loop over the indices above (remember to get .keys()[idx])
+    PKextra = 0
+    PKpicks = 0
+    for row in idx:
+        PKexact = PK1master[row]==PK1player[row] and PK2master[row]==PK2player[row]
+        PKgt = PK1master[row]>PK2master[row] and PK1player[row]>PK2player[row]
+        PKlt = PK1master[row]<PK2master[row] and PK1player[row]<PK2player[row]
+        PKeq = PK1master[row]==PK2master[row] and PK1player[row]==PK2player[row]
+        PKextra = PKextra + 2*PKexact + (PKgt or PKlt or PKeq)
+        PKpicks = PKpicks + PKexact
+   
+    return points+PKextra, picks+PKpicks
 
 # retrieve number of players
 n = len(scoreData)-1 
@@ -57,12 +82,22 @@ rankings.index = range(1,n+1)
 ##############################################################################
 ## DISPLAY SCORES
 @st.cache
-def displayScores(scores):
+def displayScores(scores,playoff=firstPlayoffRow-2):
     # convert dic to DF
-    DF = pd.DataFrame(scores)
+    df = pd.DataFrame(scores)
     # rearrange columns, only keep some
-    DF = DF[['Date','Team1','Team1score','Team2score','Team2']]
+    DF = df[['Date','Team1','Team1score','Team2score','Team2']]
     
+    # get playoff entries with ties
+    team1score = df['Team1score']
+    team2score = df['Team2score']
+    tie = team1score==team2score # get entries with real ties
+    PKflag = np.logical_and(tie, DF.index>=playoff) # now PKflag contains the rows where PK need to be assessed
+    idx = PKflag.keys()[np.where(PKflag)[0]]
+    # insert penalty scores
+    for row in idx:
+        DF['Team1score'][row] = str(int(df['Team1score'][row])) + ' (' + str(int(df['PK1'][row])) +')'
+        DF['Team2score'][row] = str(int(df['Team2score'][row])) + ' (' + str(int(df['PK2'][row])) +')'
     # add x column
     DF.insert(loc=3,column='x',value='x')
     # sort by date
