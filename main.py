@@ -86,18 +86,7 @@ def displayScores(scores,playoff=firstPlayoffRow-2):
     # convert dic to DF
     df = pd.DataFrame(scores)
     # rearrange columns, only keep some
-    DF = df[['Date','Team1','Team1score','Team2score','Team2']]
-    
-    # get playoff entries with ties
-    team1score = df['Team1score']
-    team2score = df['Team2score']
-    tie = team1score==team2score # get entries with real ties
-    PKflag = np.logical_and(tie, DF.index>=playoff) # now PKflag contains the rows where PK need to be assessed
-    idx = PKflag.keys()[np.where(PKflag)[0]]
-    # insert penalty scores
-    for row in idx:
-        DF['Team1score'][row] = str(int(df['Team1score'][row])) + ' (' + str(int(df['PK1'][row])) +')'
-        DF['Team2score'][row] = str(int(df['Team2score'][row])) + ' (' + str(int(df['PK2'][row])) +')'
+    DF = df[['Date','Team1','Team1score','Team2score','Team2','PK1','PK2']]
     # add x column
     DF.insert(loc=3,column='x',value='x')
     # sort by date
@@ -123,6 +112,5 @@ else:
     idx = np.where(np.array(options)==radio)[0][0]-1
     scores = displayScores(scoreData[idx])
     scores = scores.rename(columns={'Team1score':'S1','Team2score':'S2'})
-    #st.table(scores.style.format({'S1':'{:.0f}','S2':'{:.0f}','Date':'{:%b %d}'},na_rep=' '))
-    st.table(scores,na_rep=' ')
+    st.table(scores.style.format({'S1':'{:.0f}','S2':'{:.0f}','PK1':'{:.0f}','PK2':'{:.0f}','Date':'{:%b %d}'},na_rep=' '))
     
