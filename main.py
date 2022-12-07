@@ -123,5 +123,6 @@ else:
     idx = np.where(np.array(options)==radio)[0][0]-1
     scores = displayScores(scoreData[idx])
     scores = scores.rename(columns={'Team1score':'S1','Team2score':'S2'})
-    st.table(scores.style.format({'S1':'{:.0f}','S2':'{:.0f}','Date':'{:%b %d}'},na_rep=' '))
+    #st.table(scores.style.format({'S1':'{:.0f}','S2':'{:.0f}','Date':'{:%b %d}'},na_rep=' '))
+    st.table(scores,na_rep=' ')
     
