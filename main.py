@@ -14,7 +14,7 @@ scoreData = pd.read_pickle(pklfile)
 ## GET RANKINGS
 def getPoints(master,player,playoff=firstPlayoffRow-2):
     # identify NA entries
-    flag = ~master['Team1score'].isna()
+    flag = np.logical_not(np.logical_or(master['Team1score'].isna(),player['Team1score'].isna()))
     # get scores
     master1 = master['Team1score'][flag]
     master2 = master['Team2score'][flag]
